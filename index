@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>體重紀錄小幫手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#14b8a6', // Teal 500
+                        secondary: '#0f766e', // Teal 700
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent;}
+        .modal-open { overflow: hidden; }
+    </style>
+</head>
+<body class="text-gray-800 font-sans antialiased">
+
+    <div class="max-w-md mx-auto relative min-h-screen pb-24">
+        
+        <header class="flex justify-between items-center pt-6 px-4 mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-weight-scale text-primary"></i> 體重日誌
+                </h1>
+                <p class="text-sm text-gray-500 mt-1" id="header-subtitle">追蹤您的健康旅程</p>
+            </div>
+            <button onclick="openSettingsModal()" class="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center text-gray-500 hover:text-primary transition">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </header>
+
+        <div class="px-4 space-y-6">
+            
+            <div id="tab-home" class="tab-content block space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-primary opacity-10 text-6xl">
+                            <i class="fa-solid fa-person"></i>
+                        </div>
+                        <span class="text-xs font-medium text-gray-500 mb-1">最新體重</span>
+                        <div class="flex items-baseline gap-1">
+                            <span id="display-current-weight" class="text-3xl font-bold text-gray-900">--</span>
+                            <span class="text-sm text-gray-500 font-medium">kg</span>
+                        </div>
+                        <div id="weight-trend" class="text-[11px] mt-2 font-medium"></div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-medium text-gray-500">當前 BMI</span>
+                            <span id="bmi-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500">未計算</span>
+                        </div>
+                        <div class="flex items-baseline gap-1">
+                            <span id="display-bmi" class="text-3xl font-bold text-gray-900">--</span>
+                        </div>
+                        <div class="text-xs text-gray-400 mt-2">
+                            基於 <span id="display-height">--</span> cm
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-lg shrink-0">
+                            <i class="fa-solid fa-fire"></i>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-medium text-gray-500">連續紀錄</div>
+                            <div class="text-lg font-bold text-gray-900" id="display-streak">-- 天</div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-lg shrink-0">
+                            <i class="fa-solid fa-calendar-check"></i>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-medium text-gray-500">近30天變化</div>
+                            <div class="text-lg font-bold text-gray-900" id="display-month-change">-- kg</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative">
+                    <div class="flex justify-between items-end mb-3">
+                        <div>
+                            <span class="text-xs font-medium text-gray-500 block">距離目標體重</span>
+                            <span id="goal-difference" class="text-xl font-bold text-gray-900">-- kg</span>
+                        </div>
+                        <div class="text-right flex items-center gap-2">
+                            <div>
+                                <span class="text-xs font-medium text-gray-500 block">目標</span>
+                                <span id="display-goal-weight" class="text-sm font-bold text-primary">-- kg</span>
+                            </div>
+                            <button onclick="openSettingsModal()" class="w-6 h-6 bg-gray-50 text-gray-400 rounded-md hover:bg-gray-100 hover:text-primary transition flex justify-center items-center">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
+                        <div id="goal-progress-bar" class="bg-primary h-3 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                    </div>
+                    <p id="goal-message" class="text-[11px] text-gray-400 mt-2 text-right">繼續保持！</p>
+                </div>
+            </div>
+
+            <div id="tab-trend" class="tab-content hidden space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-sm font-semibold text-gray-700">
+                            <i class="fa-solid fa-chart-line text-primary mr-1"></i> 體重變化趨勢
+                        </h2>
+                    </div>
+                    
+                    <div class="flex bg-gray-50 rounded-lg p-1 mb-4 border border-gray-100">
+                        <button onclick="setChartPeriod('daily')" id="btn-period-daily" class="flex-1 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-primary transition">日趨勢</button>
+                        <button onclick="setChartPeriod('weekly')" id="btn-period-weekly" class="flex-1 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-gray-600 transition">週趨勢</button>
+                        <button onclick="setChartPeriod('monthly')" id="btn-period-monthly" class="flex-1 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-gray-600 transition">月趨勢</button>
+                    </div>
+
+                    <div class="relative h-56 w-full">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-teal-50 to-white rounded-2xl p-5 shadow-sm border border-teal-100 relative overflow-hidden">
+                    <div class="absolute -right-2 -bottom-2 text-teal-200 opacity-30 text-7xl">
+                        <i class="fa-solid fa-lightbulb"></i>
+                    </div>
+                    <h2 class="text-sm font-semibold text-teal-800 mb-2 relative z-10"><i class="fa-solid fa-stethoscope mr-1"></i> 小幫手建議</h2>
+                    <p id="suggestion-text" class="text-sm text-gray-600 leading-relaxed relative z-10">載入中...</p>
+                </div>
+            </div>
+
+            <div id="tab-records" class="tab-content hidden space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 min-h-[300px]">
+                    <h2 class="text-sm font-semibold text-gray-700 mb-4 flex justify-between items-center">
+                        <span><i class="fa-solid fa-list text-primary mr-1"></i> 完整紀錄</span>
+                        <span class="text-xs text-gray-400" id="total-records-count">共 0 筆</span>
+                    </h2>
+                    <div class="overflow-x-auto no-scrollbar">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-gray-400 border-b border-gray-100">
+                                <tr>
+                                    <th class="pb-3 font-medium">日期</th>
+                                    <th class="pb-3 font-medium text-right">體重</th>
+                                    <th class="pb-3 font-medium text-right">變化</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-list" class="divide-y divide-gray-50">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <button onclick="openRecordModal()" class="fixed bottom-20 right-4 sm:right-[calc(50%-13rem)] w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/40 flex items-center justify-center text-2xl hover:scale-105 active:scale-95 transition-all z-30">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+
+        <nav class="fixed bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 bg-white border-t border-gray-200 flex justify-around items-center h-16 z-20 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <button onclick="switchTab('home')" id="nav-home" class="nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-primary transition-colors">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span class="text-[10px] font-medium">首頁</span>
+            </button>
+            <button onclick="switchTab('trend')" id="nav-trend" class="nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
+                <i class="fa-solid fa-chart-pie text-lg"></i>
+                <span class="text-[10px] font-medium">趨勢</span>
+            </button>
+            <button onclick="switchTab('records')" id="nav-records" class="nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
+                <i class="fa-solid fa-book text-lg"></i>
+                <span class="text-[10px] font-medium">紀錄</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <div id="record-modal" class="fixed inset-0 bg-gray-900/60 hidden z-50 flex items-center justify-center transition-opacity opacity-0 p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 transform scale-95 transition-transform duration-300 shadow-xl" id="record-modal-content">
+            <div class="flex justify-between items-center mb-5">
+                <h2 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-pen-to-square text-primary mr-2"></i>記錄體重</h2>
+                <button type="button" onclick="closeRecordModal()" class="w-8 h-8 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 flex justify-center items-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="record-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">日期</label>
+                    <input type="date" id="input-date" required class="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">體重 (kg)</label>
+                    <input type="number" step="0.1" id="input-weight" required placeholder="例如: 65.5" class="w-full border border-gray-200 rounded-xl p-3 text-lg font-bold text-gray-800 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white">
+                </div>
+                <button type="submit" class="w-full bg-primary hover:bg-secondary text-white font-bold rounded-xl py-3.5 text-sm shadow-md shadow-primary/30 transition duration-200 flex justify-center items-center gap-2 mt-2">
+                    <i class="fa-solid fa-check"></i> 儲存紀錄
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 bg-gray-900/60 hidden z-50 flex items-center justify-center transition-opacity opacity-0 p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 transform scale-95 transition-transform duration-300 shadow-xl" id="settings-modal-content">
+            <div class="flex justify-between items-center mb-5">
+                <h2 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-gear text-primary mr-2"></i>設定目標</h2>
+                <button type="button" onclick="closeSettingsModal()" class="w-8 h-8 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 flex justify-center items-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">您的身高 (cm)</label>
+                    <input type="number" id="setting-height" class="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white" placeholder="170">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">目標體重 (kg)</label>
+                    <input type="number" id="setting-goal" class="w-full border border-gray-200 rounded-xl p-3 text-lg font-bold text-gray-800 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white" placeholder="65">
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl py-3.5 text-sm shadow-md transition duration-200 flex justify-center items-center gap-2 mt-2">
+                    <i class="fa-solid fa-floppy-disk"></i> 儲存設定
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 應用程式狀態 ---
+        let userProfile = { height: 170, goalWeight: 65 };
+        let chartInstance = null;
+        let currentTab = 'home';
+        let chartPeriod = 'daily'; 
+        const today = new Date();
+        let weightRecords = [];
+
+        // ⚠️ 請在這裡貼上你剛剛部署的 Apps Script URL
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwjdPmfwmb-Bw6mXT8TL3SjHjd3n6v3D7_8q_-DRfdMxbKIo8PgTpEj05nEToE-aV-Y/exec'; 
+
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }`;
+        document.head.appendChild(style);
+
+        // --- 初始化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('input-date').value = today.toISOString().split('T')[0];
+            document.getElementById('record-form').addEventListener('submit', handleAddRecord);
+
+            // 點擊 Modal 外圍關閉
+            document.getElementById('record-modal').addEventListener('click', (e) => { if(e.target.id === 'record-modal') closeRecordModal(); });
+            document.getElementById('settings-modal').addEventListener('click', (e) => { if(e.target.id === 'settings-modal') closeSettingsModal(); });
+
+            // 頁面載入時，先將畫面清空或顯示載入中
+            document.getElementById('display-current-weight').innerText = '載入中';
+            fetchDataFromGAS();
+        });
+
+        // --- 與雲端試算表互動的邏輯 ---
+        async function fetchDataFromGAS() {
+            try {
+                const response = await fetch(GAS_URL);
+                const data = await response.json();
+                
+                if (data.profile) {
+                    userProfile = data.profile;
+                    document.getElementById('setting-height').value = userProfile.height;
+                    document.getElementById('setting-goal').value = userProfile.goalWeight;
+                }
+                if (data.records) {
+                    weightRecords = data.records;
+                }
+                updateDashboard();
+            } catch (error) {
+                console.error("讀取資料失敗:", error);
+                alert("無法從伺服器讀取資料，請確認網路連線喔！");
+            }
+        }
+
+        async function handleAddRecord(e) {
+            e.preventDefault();
+            const dateStr = document.getElementById('input-date').value;
+            const weightVal = parseFloat(document.getElementById('input-weight').value);
+            if (!dateStr || isNaN(weightVal)) return;
+
+            // 1. 先在本地端更新畫面，讓媽咪覺得操作很快不卡頓
+            const existingIndex = weightRecords.findIndex(r => r.date === dateStr);
+            if (existingIndex >= 0) weightRecords[existingIndex].weight = weightVal;
+            else weightRecords.push({ date: dateStr, weight: weightVal });
+            weightRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            document.getElementById('input-weight').value = '';
+            closeRecordModal();
+            updateDashboard();
+            if(currentTab === 'trend') switchTab('home');
+
+            // 2. 背景發送請求給雲端儲存
+            try {
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'addRecord',
+                        date: dateStr,
+                        weight: weightVal
+                    })
+                });
+            } catch (error) {
+                console.error("儲存紀錄失敗:", error);
+                alert("哎呀，資料儲存至雲端失敗了！");
+            }
+        }
+
+        async function saveSettings() {
+            const h = parseFloat(document.getElementById('setting-height').value);
+            const g = parseFloat(document.getElementById('setting-goal').value);
+            if (h && g) {
+                userProfile.height = h;
+                userProfile.goalWeight = g;
+                closeSettingsModal();
+                updateDashboard();
+
+                try {
+                    await fetch(GAS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'updateProfile',
+                            height: h,
+                            goalWeight: g
+                        })
+                    });
+                } catch (error) {
+                    console.error("儲存設定失敗:", error);
+                }
+            }
+        }
+
+        // --- UI 控制 ---
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => { el.classList.add('hidden'); el.classList.remove('block'); });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.add('block');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => { btn.classList.remove('text-primary'); btn.classList.add('text-gray-400'); });
+            document.getElementById(`nav-${tabId}`).classList.remove('text-gray-400');
+            document.getElementById(`nav-${tabId}`).classList.add('text-primary');
+
+            const subtitles = { 'home': '追蹤您的健康旅程', 'trend': '數據分析與健康建議', 'records': '所有體重日誌' };
+            document.getElementById('header-subtitle').innerText = subtitles[tabId];
+
+            if (tabId === 'trend' && chartInstance) chartInstance.resize();
+        }
+
+        function toggleModal(modalId, isOpen) {
+            const modal = document.getElementById(modalId);
+            const content = document.getElementById(`${modalId}-content`);
+            if (isOpen) {
+                modal.classList.remove('hidden');
+                document.body.classList.add('modal-open');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    content.classList.remove('scale-95');
+                }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                content.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('modal-open');
+                }, 300);
+            }
+        }
+
+        function openRecordModal() {
+            if(weightRecords.length > 0) {
+                document.getElementById('input-weight').placeholder = `目前: ${weightRecords[weightRecords.length-1].weight} kg`;
+            } else {
+                document.getElementById('input-weight').placeholder = `例如: 65.5`;
+            }
+            toggleModal('record-modal', true);
+        }
+        function closeRecordModal() { toggleModal('record-modal', false); }
+        function openSettingsModal() { toggleModal('settings-modal', true); }
+        function closeSettingsModal() { toggleModal('settings-modal', false); }
+
+        function setChartPeriod(period) {
+            chartPeriod = period;
+            const buttons = ['daily', 'weekly', 'monthly'];
+            buttons.forEach(btn => {
+                const el = document.getElementById(`btn-period-${btn}`);
+                if (btn === period) {
+                    el.className = "flex-1 py-1.5 text-xs font-bold rounded-md bg-white shadow-sm text-primary transition";
+                } else {
+                    el.className = "flex-1 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-gray-600 transition";
+                }
+            });
+            updateChart();
+        }
+
+        // --- 核心邏輯 ---
+        function updateDashboard() {
+            document.getElementById('display-height').innerText = userProfile.height;
+            document.getElementById('display-goal-weight').innerText = `${userProfile.goalWeight} kg`;
+
+            if (weightRecords.length === 0) {
+                document.getElementById('display-current-weight').innerText = '--';
+                document.getElementById('weight-trend').innerHTML = `<span class="text-gray-400 font-normal">開始您的第一筆紀錄！</span>`;
+                document.getElementById('display-bmi').innerText = '--';
+                document.getElementById('bmi-badge').innerText = '未計算';
+                document.getElementById('bmi-badge').className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500';
+                document.getElementById('display-streak').innerText = '-- 天';
+                document.getElementById('display-month-change').innerHTML = `<span class="text-gray-500">--</span>`;
+                document.getElementById('goal-difference').innerText = '-- kg';
+                document.getElementById('goal-progress-bar').style.width = '0%';
+                document.getElementById('goal-message').innerText = '準備好開始您的旅程了嗎？';
+                document.getElementById('suggestion-text').innerHTML = '目前尚無紀錄。請點擊右下角的加號按鈕，新增您的第一筆體重資料，讓小幫手開始為您分析喔！';
+                document.getElementById('total-records-count').innerText = `共 0 筆`;
+                document.getElementById('history-list').innerHTML = '<tr><td colspan="3" class="py-4 text-center text-gray-400">尚無紀錄</td></tr>';
+                updateChart();
+                return;
+            }
+
+            const latestRecord = weightRecords[weightRecords.length - 1];
+            let previousRecord = weightRecords.length > 1 ? weightRecords[weightRecords.length - 2] : null;
+
+            document.getElementById('display-current-weight').innerText = latestRecord.weight.toFixed(1);
+            const trendEl = document.getElementById('weight-trend');
+            if (previousRecord) {
+                const diff = latestRecord.weight - previousRecord.weight;
+                if (diff > 0) trendEl.innerHTML = `<span class="text-red-500"><i class="fa-solid fa-arrow-trend-up"></i> +${diff.toFixed(1)} kg</span> <span class="text-gray-400 font-normal">較上次</span>`;
+                else if (diff < 0) trendEl.innerHTML = `<span class="text-primary"><i class="fa-solid fa-arrow-trend-down"></i> ${diff.toFixed(1)} kg</span> <span class="text-gray-400 font-normal">較上次</span>`;
+                else trendEl.innerHTML = `<span class="text-gray-500"><i class="fa-solid fa-minus"></i> 持平</span> <span class="text-gray-400 font-normal">較上次</span>`;
+            }
+
+            const bmi = latestRecord.weight / Math.pow(userProfile.height / 100, 2);
+            document.getElementById('display-height').innerText = userProfile.height;
+            document.getElementById('display-bmi').innerText = bmi.toFixed(1);
+            
+            const badgeEl = document.getElementById('bmi-badge');
+            let bmiCat = bmi < 18.5 ? "underweight" : (bmi < 24 ? "normal" : (bmi < 27 ? "overweight" : "obese"));
+            const badgeStyles = {
+                "underweight": {text: "體重過輕", cls: "bg-blue-100 text-blue-600"},
+                "normal": {text: "正常範圍", cls: "bg-green-100 text-green-600"},
+                "overweight": {text: "過重", cls: "bg-yellow-100 text-yellow-600"},
+                "obese": {text: "肥胖", cls: "bg-red-100 text-red-600"}
+            };
+            badgeEl.innerText = badgeStyles[bmiCat].text;
+            badgeEl.className = `px-2 py-0.5 rounded text-[10px] font-bold ${badgeStyles[bmiCat].cls}`;
+
+            document.getElementById('display-goal-weight').innerText = `${userProfile.goalWeight} kg`;
+            const diffToGoal = latestRecord.weight - userProfile.goalWeight;
+            document.getElementById('goal-difference').innerText = `${Math.abs(diffToGoal).toFixed(1)} kg`;
+            
+            let progress = 0;
+            const startWeight = weightRecords[0].weight;
+            if (startWeight !== userProfile.goalWeight) {
+                progress = startWeight > userProfile.goalWeight 
+                    ? ((startWeight - latestRecord.weight) / (startWeight - userProfile.goalWeight)) * 100
+                    : ((latestRecord.weight - startWeight) / (userProfile.goalWeight - startWeight)) * 100;
+            }
+            progress = Math.max(0, Math.min(100, progress));
+            document.getElementById('goal-progress-bar').style.width = `${progress}%`;
+
+            updateStats(latestRecord);
+            generateSuggestion(bmiCat, diffToGoal, latestRecord.weight, previousRecord?.weight);
+            updateRecordsList();
+            updateChart();
+        }
+
+        function updateStats(latestRecord) {
+            let streak = 0;
+            let checkDate = new Date(latestRecord.date);
+            let dateSet = new Set(weightRecords.map(r => r.date));
+            while (dateSet.has(checkDate.toISOString().split('T')[0])) {
+                streak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            }
+            document.getElementById('display-streak').innerText = `${streak} 天`;
+
+            let thirtyDaysAgo = new Date(latestRecord.date);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            let targetDateStr = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            let pastRecord = weightRecords.find(r => r.date >= targetDateStr) || weightRecords[0];
+            let monthDiff = latestRecord.weight - pastRecord.weight;
+            
+            let monthEl = document.getElementById('display-month-change');
+            if (monthDiff > 0) monthEl.innerHTML = `<span class="text-red-500">+${monthDiff.toFixed(1)}</span>`;
+            else if (monthDiff < 0) monthEl.innerHTML = `<span class="text-primary">${monthDiff.toFixed(1)}</span>`;
+            else monthEl.innerHTML = `<span class="text-gray-500">0.0</span>`;
+        }
+
+        function updateRecordsList() {
+            const historyBody = document.getElementById('history-list');
+            historyBody.innerHTML = '';
+            document.getElementById('total-records-count').innerText = `共 ${weightRecords.length} 筆`;
+            
+            const reversedRecords = [...weightRecords].reverse();
+            reversedRecords.slice(0, 20).forEach((record, index) => {
+                let changeHtml = '<span class="text-gray-400">-</span>';
+                if (index < reversedRecords.length - 1) {
+                    const diff = record.weight - reversedRecords[index + 1].weight;
+                    if (diff > 0) changeHtml = `<span class="text-red-500 font-medium">+${diff.toFixed(1)}</span>`;
+                    else if (diff < 0) changeHtml = `<span class="text-primary font-medium">${diff.toFixed(1)}</span>`;
+                    else changeHtml = `<span class="text-gray-400 font-medium">0.0</span>`;
+                }
+                const dateObj = new Date(record.date);
+                const dateFmt = `${dateObj.getFullYear()}/${(dateObj.getMonth()+1).toString().padStart(2, '0')}/${dateObj.getDate().toString().padStart(2, '0')}`;
+                historyBody.insertAdjacentHTML('beforeend', `
+                    <tr class="hover:bg-gray-50 transition border-b border-gray-50 last:border-0">
+                        <td class="py-3 text-gray-500">${dateFmt}</td>
+                        <td class="py-3 text-right font-semibold text-gray-800">${record.weight.toFixed(1)} kg</td>
+                        <td class="py-3 text-right">${changeHtml}</td>
+                    </tr>
+                `);
+            });
+        }
+
+        function generateSuggestion(category, diffToGoal, currentWeight, prevWeight) {
+            let text = "", trendText = "";
+            if (prevWeight) {
+                if (currentWeight < prevWeight) trendText = "最近體重有下降趨勢，做得很好喔！";
+                else if (currentWeight > prevWeight) trendText = "最近體重略有上升，媽咪可以留意一下最近的飲食。";
+                else trendText = "最近體重保持平穩喔。";
+            }
+
+            if (category === "underweight") text = `${trendText} 您的 BMI 偏低，建議多攝取優質蛋白質與複合性碳水化合物來健康增重！`;
+            else if (category === "normal") {
+                if (Math.abs(diffToGoal) <= 1) text = "太棒了！您非常接近目標體重，且處於完美的正常範圍。請繼續保持目前的健康習慣。";
+                else text = `${trendText} 您的 BMI 在標準健康範圍內！繼續朝著設定的目標 ${userProfile.goalWeight}kg 邁進吧。`;
+            }
+            else if (category === "overweight") text = `${trendText} 您的體重稍微超標。建議可以先從減少含糖飲料或增加日常步數這種微小改變開始調整喔。`;
+            else text = "您的 BMI 偏高，建議尋求專業醫師或營養師的協助，制定專屬的減重計畫，媽咪要以健康為第一優先喔！";
+
+            document.getElementById('suggestion-text').innerHTML = text;
+        }
+
+        function getAggregatedChartData() {
+            let resultMap = new Map();
+            weightRecords.forEach(r => {
+                let d = new Date(r.date);
+                let key;
+                if (chartPeriod === 'weekly') {
+                    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+                    let yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+                    let weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+                    key = `${d.getUTCFullYear()}-W${weekNo}`;
+                } else if (chartPeriod === 'monthly') {
+                    key = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
+                } else {
+                    key = r.date;
+                }
+                
+                if(!resultMap.has(key)) resultMap.set(key, { sum: 0, count: 0, lastWeight: r.weight, date: new Date(r.date) });
+                let data = resultMap.get(key);
+                data.sum += r.weight;
+                data.count += 1;
+                data.lastWeight = r.weight; 
+            });
+
+            let aggregated = Array.from(resultMap.values());
+            if (chartPeriod === 'daily') aggregated = aggregated.slice(-14);
+            if (chartPeriod === 'weekly') aggregated = aggregated.slice(-12);
+            if (chartPeriod === 'monthly') aggregated = aggregated.slice(-6);
+
+            let labels = aggregated.map(a => {
+                if(chartPeriod === 'monthly') return `${a.date.getMonth()+1}月`;
+                if(chartPeriod === 'weekly') return `${a.date.getMonth()+1}/${a.date.getDate()} 當週`;
+                return `${a.date.getMonth()+1}/${a.date.getDate()}`;
+            });
+            let dataPoints = aggregated.map(a => chartPeriod === 'daily' ? a.lastWeight : (a.sum / a.count));
+
+            return { labels, dataPoints };
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            const { labels, dataPoints } = getAggregatedChartData();
+            
+            let minWeight = userProfile.goalWeight - 5;
+            let maxWeight = userProfile.goalWeight + 5;
+            
+            if (dataPoints.length > 0) {
+                minWeight = Math.min(...dataPoints, userProfile.goalWeight) - 2;
+                maxWeight = Math.max(...dataPoints, userProfile.goalWeight) + 2;
+            }
+
+            const displayLabels = labels.length > 0 ? labels : [''];
+            const displayData = dataPoints.length > 0 ? dataPoints : [null];
+            const goalPoints = Array(Math.max(labels.length, 1)).fill(userProfile.goalWeight);
+
+            if (chartInstance) {
+                chartInstance.data.labels = displayLabels;
+                chartInstance.data.datasets[0].data = displayData;
+                chartInstance.data.datasets[1].data = goalPoints;
+                chartInstance.options.scales.y.min = minWeight;
+                chartInstance.options.scales.y.max = maxWeight;
+                chartInstance.update();
+            } else {
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: displayLabels,
+                        datasets: [
+                            {
+                                label: '體重 (kg)', data: displayData,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', titleFont: { size: 12 }, bodyFont: { size: 13, weight: 'bold' }, padding: 10, cornerRadius: 8, displayColors: false }
+                        },
+                        scales: {
+                            y: { min: minWeight, max: maxWeight, border: { display: false }, grid: { color: '#f1f5f9', drawBorder: false }, ticks: { color: '#94a3b8', font: { size: 11 }, stepSize: 1 } },
+                            x: { border: { display: false }, grid: { display: false, drawBorder: false }, ticks: { color: '#94a3b8', font: { size: 11 }, maxTicksLimit: 7 } }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
