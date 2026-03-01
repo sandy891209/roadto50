@@ -28,7 +28,7 @@
 </head>
 <body class="text-gray-800 font-sans antialiased">
 
-    <div class="max-w-md mx-auto relative min-h-screen pb-24">
+    <div class="max-w-md mx-auto relative min-h-screen pb-28">
         
         <header class="flex justify-between items-center pt-6 px-4 mb-6">
             <div>
@@ -168,11 +168,11 @@
 
         </div>
 
-        <button onclick="openRecordModal()" class="fixed bottom-20 right-4 sm:right-[calc(50%-13rem)] w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/40 flex items-center justify-center text-2xl hover:scale-105 active:scale-95 transition-all z-30">
+        <button onclick="openRecordModal()" class="fixed bottom-24 right-4 sm:right-[calc(50%-13rem)] w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/40 flex items-center justify-center text-2xl hover:scale-105 active:scale-95 transition-all z-30">
             <i class="fa-solid fa-plus"></i>
         </button>
 
-        <nav class="fixed bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 bg-white border-t border-gray-200 flex justify-around items-center h-16 z-20 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <nav class="fixed bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 bg-white border-t border-gray-200 flex justify-around items-center pt-3 pb-6 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             <button onclick="switchTab('home')" id="nav-home" class="nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-primary transition-colors">
                 <i class="fa-solid fa-house text-lg"></i>
                 <span class="text-[10px] font-medium">首頁</span>
@@ -200,11 +200,11 @@
             <form id="record-form" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-600 mb-1">日期</label>
-                    <input type="date" id="input-date" required class="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white">
+                    <input type="date" id="input-date" required class="w-full box-border max-w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-600 mb-1">體重 (kg)</label>
-                    <input type="number" step="0.1" id="input-weight" required placeholder="例如: 65.5" class="w-full border border-gray-200 rounded-xl p-3 text-lg font-bold text-gray-800 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white">
+                    <input type="number" step="0.1" id="input-weight" required placeholder="例如: 65.5" class="w-full box-border max-w-full border border-gray-200 rounded-xl px-3 py-3 text-lg font-bold text-gray-800 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white">
                 </div>
                 <button type="submit" class="w-full bg-primary hover:bg-secondary text-white font-bold rounded-xl py-3.5 text-sm shadow-md shadow-primary/30 transition duration-200 flex justify-center items-center gap-2 mt-2">
                     <i class="fa-solid fa-check"></i> 儲存紀錄
@@ -224,11 +224,11 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-600 mb-1">您的身高 (cm)</label>
-                    <input type="number" id="setting-height" class="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white" placeholder="170">
+                    <input type="number" id="setting-height" class="w-full box-border border border-gray-200 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white" placeholder="170">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-600 mb-1">目標體重 (kg)</label>
-                    <input type="number" id="setting-goal" class="w-full border border-gray-200 rounded-xl p-3 text-lg font-bold text-gray-800 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white" placeholder="65">
+                    <input type="number" id="setting-goal" class="w-full box-border border border-gray-200 rounded-xl px-3 py-3 text-lg font-bold text-gray-800 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition bg-gray-50 focus:bg-white" placeholder="65">
                 </div>
                 <button onclick="saveSettings()" class="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl py-3.5 text-sm shadow-md transition duration-200 flex justify-center items-center gap-2 mt-2">
                     <i class="fa-solid fa-floppy-disk"></i> 儲存設定
@@ -246,7 +246,6 @@
         const today = new Date();
         let weightRecords = [];
 
-        // ⚠️ 請在這裡貼上你剛剛部署的 Apps Script URL
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbwjdPmfwmb-Bw6mXT8TL3SjHjd3n6v3D7_8q_-DRfdMxbKIo8PgTpEj05nEToE-aV-Y/exec'; 
 
         const style = document.createElement('style');
@@ -262,7 +261,6 @@
             document.getElementById('record-modal').addEventListener('click', (e) => { if(e.target.id === 'record-modal') closeRecordModal(); });
             document.getElementById('settings-modal').addEventListener('click', (e) => { if(e.target.id === 'settings-modal') closeSettingsModal(); });
 
-            // 頁面載入時，先將畫面清空或顯示載入中
             document.getElementById('display-current-weight').innerText = '載入中';
             fetchDataFromGAS();
         });
@@ -294,7 +292,6 @@
             const weightVal = parseFloat(document.getElementById('input-weight').value);
             if (!dateStr || isNaN(weightVal)) return;
 
-            // 1. 先在本地端更新畫面，讓媽咪覺得操作很快不卡頓
             const existingIndex = weightRecords.findIndex(r => r.date === dateStr);
             if (existingIndex >= 0) weightRecords[existingIndex].weight = weightVal;
             else weightRecords.push({ date: dateStr, weight: weightVal });
@@ -305,7 +302,6 @@
             updateDashboard();
             if(currentTab === 'trend') switchTab('home');
 
-            // 2. 背景發送請求給雲端儲存
             try {
                 await fetch(GAS_URL, {
                     method: 'POST',
@@ -533,7 +529,7 @@
             let text = "", trendText = "";
             if (prevWeight) {
                 if (currentWeight < prevWeight) trendText = "最近體重有下降趨勢，做得很好喔！";
-                else if (currentWeight > prevWeight) trendText = "最近體重略有上升，媽咪可以留意一下最近的飲食。";
+                else if (currentWeight > prevWeight) trendText = "最近體重略有上升，可以留意一下最近的飲食。";
                 else trendText = "最近體重保持平穩喔。";
             }
 
@@ -543,7 +539,7 @@
                 else text = `${trendText} 您的 BMI 在標準健康範圍內！繼續朝著設定的目標 ${userProfile.goalWeight}kg 邁進吧。`;
             }
             else if (category === "overweight") text = `${trendText} 您的體重稍微超標。建議可以先從減少含糖飲料或增加日常步數這種微小改變開始調整喔。`;
-            else text = "您的 BMI 偏高，建議尋求專業醫師或營養師的協助，制定專屬的減重計畫，媽咪要以健康為第一優先喔！";
+            else text = "您的 BMI 偏高，建議尋求專業醫師或營養師的協助，制定專屬的減重計畫，要以健康為第一優先喔！";
 
             document.getElementById('suggestion-text').innerHTML = text;
         }
@@ -600,12 +596,20 @@
 
             const displayLabels = labels.length > 0 ? labels : [''];
             const displayData = dataPoints.length > 0 ? dataPoints : [null];
+            
+            // 確保目標體重的線條數量對齊資料
             const goalPoints = Array(Math.max(labels.length, 1)).fill(userProfile.goalWeight);
 
             if (chartInstance) {
+                // 更新原本的圖表資料，加入第二組 Dataset 修正切換報錯的問題
                 chartInstance.data.labels = displayLabels;
                 chartInstance.data.datasets[0].data = displayData;
-                chartInstance.data.datasets[1].data = goalPoints;
+                
+                // 確保第二個 dataset（目標體重線）存在再更新
+                if(chartInstance.data.datasets[1]) {
+                    chartInstance.data.datasets[1].data = goalPoints;
+                }
+                
                 chartInstance.options.scales.y.min = minWeight;
                 chartInstance.options.scales.y.max = maxWeight;
                 chartInstance.update();
@@ -616,7 +620,21 @@
                         labels: displayLabels,
                         datasets: [
                             {
-                                label: '體重 (kg)', data: displayData,
+                                label: '體重 (kg)', 
+                                data: displayData,
+                                borderColor: '#14b8a6',
+                                backgroundColor: 'rgba(20, 184, 166, 0.1)',
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: '目標體重',
+                                data: goalPoints,
+                                borderColor: '#94a3b8',
+                                borderDash: [5, 5],
+                                borderWidth: 1.5,
+                                pointRadius: 0,
+                                fill: false
                             }
                         ]
                     },
